@@ -69,8 +69,10 @@
 
 <img width="2372" height="1321" alt="image" src="https://github.com/user-attachments/assets/38fdaa25-2c71-4a3d-92bf-51cd934b278f" />
 
+
+
 ## Задание №4
 Сохраните ваш Dashboard.Для этого перейдите в настройки Dashboard, выберите в боковом меню «JSON MODEL». Далее скопируйте отображаемое json-содержимое в отдельный файл и сохраните его.
-В качестве решения задания приведите листинг этого файла.
+В качестве решения задания приведите листинг этого файла - https://github.com/Maybe-R/monitoring/blob/main/grafana/model.json
 
 
