@@ -1,0 +1,104 @@
+services:
+  es-hot:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.17.18
+    container_name: es-hot
+    environment:
+      - node.name=es-hot
+      - cluster.name=netology-elk
+      - discovery.seed_hosts=es-hot,es-warm
+      - cluster.initial_master_nodes=es-hot
+      - node.roles=master,ingest,data_content,data_hot
+      - bootstrap.memory_lock=true
+      - xpack.security.enabled=false
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - es-hot-data:/usr/share/elasticsearch/data
+    ports:
+      - "9200:9200"
+    networks:
+      - elk
+    restart: unless-stopped
+
+  es-warm:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.17.18
+    container_name: es-warm
+    environment:
+      - node.name=es-warm
+      - cluster.name=netology-elk
+      - discovery.seed_hosts=es-hot,es-warm
+      - node.roles=data_warm
+      - bootstrap.memory_lock=true
+      - xpack.security.enabled=false
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - es-warm-data:/usr/share/elasticsearch/data
+    networks:
+      - elk
+    depends_on:
+      - es-hot
+    restart: unless-stopped
+
+  logstash:
+    image: docker.elastic.co/logstash/logstash:7.17.18
+    container_name: logstash
+    environment:
+      - LS_JAVA_OPTS=-Xms256m -Xmx256m
+    volumes:
+      - ./logstash/pipeline/logstash.conf:/usr/share/logstash/pipeline/logstash.conf:ro
+    ports:
+      - "5044:5044"
+      - "5000:5000"
+      - "9600:9600"
+    networks:
+      - elk
+    depends_on:
+      - es-hot
+    restart: unless-stopped
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:7.17.18
+    container_name: kibana
+    environment:
+      - SERVER_NAME=kibana
+      - ELASTICSEARCH_HOSTS=http://es-hot:9200
+      - XPACK_SECURITY_ENABLED=false
+    ports:
+      - "5601:5601"
+    networks:
+      - elk
+    depends_on:
+      - es-hot
+    restart: unless-stopped
+
+  filebeat:
+    image: docker.elastic.co/beats/filebeat:7.17.18
+    container_name: filebeat
+    user: root
+    command: filebeat -e --strict.perms=false
+    volumes:
+      - ./filebeat/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - filebeat-data:/usr/share/filebeat/data
+    networks:
+      - elk
+    depends_on:
+      - logstash
+    restart: unless-stopped
+
+networks:
+  elk:
+    driver: bridge
+
+volumes:
+  es-hot-data:
+  es-warm-data:
+  filebeat-data:
